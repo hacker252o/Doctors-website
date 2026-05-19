@@ -1,0 +1,82 @@
+/* ------------------------------------------------ */
+/* App.css                                          */
+/* Minimal global component styling                 */
+/* Main design system is inside index.css           */
+/* ------------------------------------------------ */
+
+#root {
+  min-height: 100vh;
+}
+
+/* ---------- Smooth Rendering ---------- */
+
+body {
+  overflow-x: hidden;
+}
+
+/* ---------- Remove Blue Tap Highlight ---------- */
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ---------- Buttons ---------- */
+
+button {
+  border: none;
+  outline: none;
+  background: none;
+  font: inherit;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+/* ---------- Links ---------- */
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* ---------- Images ---------- */
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+/* ---------- Inputs ---------- */
+
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+/* ---------- Scrollbar ---------- */
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f8fafc;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* ---------- Selection ---------- */
+
+::selection {
+  background: #1e3a8a;
+  color: white;
+}
