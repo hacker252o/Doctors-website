@@ -31,8 +31,7 @@ import {
 
 export default function AdminDashboardPage() {
 
-  const navigate =
-    useNavigate();
+  const navigate = useNavigate();
 
   const [loading, setLoading] =
     useState(true);
@@ -51,82 +50,78 @@ export default function AdminDashboardPage() {
 
   /* ---------- Logout ---------- */
 
- const logout = useCallback(() => {
+  const logout = useCallback(() => {
 
-  localStorage.removeItem(
-    "admin_token"
-  );
+    localStorage.removeItem(
+      "admin_token"
+    );
 
-  localStorage.removeItem(
-    "admin_user"
-  );
+    localStorage.removeItem(
+      "admin_user"
+    );
 
-  navigate("/admin/login");
+    navigate("/admin/login");
 
-}, [navigate , logout]);
+  }, [navigate]);
+
   /* ---------- Fetch Data ---------- */
 
-  const fetchAll =
-    useCallback(async () => {
+  const fetchAll = useCallback(async () => {
 
-      try {
+    try {
 
-        setLoading(true);
+      setLoading(true);
 
-        const [
-          appointmentsRes,
-          contactsRes,
-        ] = await Promise.all([
-          api.get(
-            "/admin/appointments"
-          ),
+      const [
+        appointmentsRes,
+        contactsRes,
+      ] = await Promise.all([
+        api.get("/admin/appointments"),
+        api.get("/admin/contacts"),
+      ]);
 
-          api.get(
-            "/admin/contacts"
-          ),
-        ]);
+      const appointmentsData =
+        appointmentsRes.data || [];
 
-        const appointmentsData =
-          appointmentsRes.data || [];
+      const contactsData =
+        contactsRes.data || [];
 
-        const contactsData =
-          contactsRes.data || [];
+      setAppointments(
+        appointmentsData
+      );
 
-        setAppointments(
-          appointmentsData
-        );
+      setContacts(
+        contactsData
+      );
 
-        setContacts(
-          contactsData
-        );
+      setStats({
+        appointments:
+          appointmentsData.length,
 
-        setStats({
-          appointments:
-            appointmentsData.length,
+        contacts:
+          contactsData.length,
+      });
 
-          contacts:
-            contactsData.length,
-        });
+    } catch (err) {
 
-      } catch (err) {
+      console.error(err);
 
-        console.error(err);
+      toast.error(
+        "Failed to load dashboard."
+      );
 
-        toast.error(
-          "Failed to load dashboard."
-        );
-
-        if (
-          err?.response?.status === 401
-        ) {
-          logout();
-        }
-
-      } finally {
-
-        setLoading(false);
+      if (
+        err?.response?.status === 401
+      ) {
+        logout();
       }
-    }, [navigate]);
+
+    } finally {
+
+      setLoading(false);
+    }
+
+  }, [logout]);
 
   /* ---------- Initial Load ---------- */
 
@@ -151,6 +146,7 @@ export default function AdminDashboardPage() {
           />
 
           Loading Dashboard...
+
         </div>
       </div>
     );
@@ -176,19 +172,24 @@ export default function AdminDashboardPage() {
             <p className="text-sm text-ink-500 mt-1">
               Manage appointments and patient inquiries
             </p>
+
           </div>
 
           <button
             onClick={logout}
             className="btn-primary"
           >
+
             <LogOut size={16} />
+
             Logout
+
           </button>
+
         </div>
       </header>
 
-      {/* ---------- Content ---------- */}
+      {/* ---------- Main ---------- */}
 
       <main className="container-x py-10 space-y-10">
 
@@ -209,12 +210,15 @@ export default function AdminDashboardPage() {
                 <div className="text-4xl font-serif text-ink-900 mt-2">
                   {stats.appointments}
                 </div>
+
               </div>
 
               <div className="h-14 w-14 rounded-2xl bg-brand-50 text-brand-900 flex items-center justify-center">
 
                 <CalendarDays size={28} />
+
               </div>
+
             </div>
           </div>
 
@@ -231,14 +235,18 @@ export default function AdminDashboardPage() {
                 <div className="text-4xl font-serif text-ink-900 mt-2">
                   {stats.contacts}
                 </div>
+
               </div>
 
               <div className="h-14 w-14 rounded-2xl bg-brand-50 text-brand-900 flex items-center justify-center">
 
                 <MessageSquare size={28} />
+
               </div>
+
             </div>
           </div>
+
         </div>
 
         {/* ---------- Appointments ---------- */}
@@ -252,6 +260,7 @@ export default function AdminDashboardPage() {
             <h2 className="font-serif text-3xl text-ink-900">
               Appointments
             </h2>
+
           </div>
 
           <Table>
@@ -260,27 +269,14 @@ export default function AdminDashboardPage() {
 
               <TableRow>
 
-                <TableHead>
-                  Name
-                </TableHead>
-
-                <TableHead>
-                  Email
-                </TableHead>
-
-                <TableHead>
-                  Phone
-                </TableHead>
-
-                <TableHead>
-                  Date
-                </TableHead>
-
-                <TableHead>
-                  Message
-                </TableHead>
+                <TableHead>Name</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Phone</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Message</TableHead>
 
               </TableRow>
+
             </TableHeader>
 
             <TableBody>
@@ -290,9 +286,7 @@ export default function AdminDashboardPage() {
                 appointments.map(
                   (item, index) => (
 
-                    <TableRow
-                      key={index}
-                    >
+                    <TableRow key={index}>
 
                       <TableCell>
                         {item.name}
@@ -326,13 +320,18 @@ export default function AdminDashboardPage() {
                     colSpan={5}
                     className="text-center text-ink-500 py-8"
                   >
+
                     No appointments found.
+
                   </TableCell>
 
                 </TableRow>
               )}
+
             </TableBody>
+
           </Table>
+
         </section>
 
         {/* ---------- Contacts ---------- */}
@@ -346,6 +345,7 @@ export default function AdminDashboardPage() {
             <h2 className="font-serif text-3xl text-ink-900">
               Contact Messages
             </h2>
+
           </div>
 
           <Table>
@@ -354,19 +354,12 @@ export default function AdminDashboardPage() {
 
               <TableRow>
 
-                <TableHead>
-                  Name
-                </TableHead>
-
-                <TableHead>
-                  Email
-                </TableHead>
-
-                <TableHead>
-                  Message
-                </TableHead>
+                <TableHead>Name</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Message</TableHead>
 
               </TableRow>
+
             </TableHeader>
 
             <TableBody>
@@ -376,9 +369,7 @@ export default function AdminDashboardPage() {
                 contacts.map(
                   (item, index) => (
 
-                    <TableRow
-                      key={index}
-                    >
+                    <TableRow key={index}>
 
                       <TableCell>
                         {item.name}
@@ -404,14 +395,20 @@ export default function AdminDashboardPage() {
                     colSpan={3}
                     className="text-center text-ink-500 py-8"
                   >
+
                     No messages found.
+
                   </TableCell>
 
                 </TableRow>
               )}
+
             </TableBody>
+
           </Table>
+
         </section>
+
       </main>
     </div>
   );
