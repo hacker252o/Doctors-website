@@ -49,18 +49,42 @@ export default function AdminDashboardPage() {
     });
 
   /* ---------- Logout ---------- */
+const logout = useCallback(() => {
 
-  const logout = useCallback(() => {
-
-  localStorage.removeItem(
-    "admin_token"
-  );
-
-  localStorage.removeItem(
-    "admin_user"
-  );
+  localStorage.removeItem("admin_token");
+  localStorage.removeItem("admin_user");
 
   navigate("/admin/login");
+
+}, [navigate]);
+
+const fetchAll = useCallback(async () => {
+
+  try {
+
+    setLoading(true);
+
+    const [
+      appointmentsRes,
+      contactsRes,
+    ] = await Promise.all([
+      api.get("/admin/appointments"),
+      api.get("/admin/contacts"),
+    ]);
+
+    setAppointments(appointmentsRes.data || []);
+    setContacts(contactsRes.data || []);
+
+  } catch (err) {
+
+    if (err?.response?.status === 401) {
+      logout();
+    }
+
+  } finally {
+
+    setLoading(false);
+  }
 
 }, [logout]);
 
