@@ -4,9 +4,7 @@ import React, {
   useCallback,
 } from "react";
 
-import {
-  useNavigate,
-} from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 import {
   CalendarDays,
@@ -33,60 +31,28 @@ export default function AdminDashboardPage() {
 
   const navigate = useNavigate();
 
-  const [loading, setLoading] =
-    useState(true);
+  const [loading, setLoading] = useState(true);
 
-  const [appointments, setAppointments] =
-    useState([]);
+  const [appointments, setAppointments] = useState([]);
 
-  const [contacts, setContacts] =
-    useState([]);
+  const [contacts, setContacts] = useState([]);
 
-  const [stats, setStats] =
-    useState({
-      appointments: 0,
-      contacts: 0,
-    });
+  const [stats, setStats] = useState({
+    appointments: 0,
+    contacts: 0,
+  });
 
   /* ---------- Logout ---------- */
-const logout = useCallback(() => {
 
-  localStorage.removeItem("admin_token");
-  localStorage.removeItem("admin_user");
+  const logout = useCallback(() => {
 
-  navigate("/admin/login");
+    localStorage.removeItem("admin_token");
 
-}, [navigate]);
+    localStorage.removeItem("admin_user");
 
-const fetchAll = useCallback(async () => {
+    navigate("/admin/login");
 
-  try {
-
-    setLoading(true);
-
-    const [
-      appointmentsRes,
-      contactsRes,
-    ] = await Promise.all([
-      api.get("/admin/appointments"),
-      api.get("/admin/contacts"),
-    ]);
-
-    setAppointments(appointmentsRes.data || []);
-    setContacts(contactsRes.data || []);
-
-  } catch (err) {
-
-    if (err?.response?.status === 401) {
-      logout();
-    }
-
-  } finally {
-
-    setLoading(false);
-  }
-
-}, [logout]);
+  }, [navigate]);
 
   /* ---------- Fetch Data ---------- */
 
