@@ -63,7 +63,7 @@ export default function AdminDashboardPage() {
 
   navigate("/admin/login");
 
-}, [navigate]);
+}, [navigate , logout]);
   /* ---------- Fetch Data ---------- */
 
   const fetchAll =
