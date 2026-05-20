@@ -1,31 +1,24 @@
 import React, {
   useEffect,
   useState,
+  useCallback,
 } from "react";
 
 import {
   useNavigate,
-  Link,
 } from "react-router-dom";
 
 import {
-  LogOut,
-  RefreshCw,
-  Calendar,
+  CalendarDays,
   MessageSquare,
-  ExternalLink,
+  Users,
+  LogOut,
   Loader2,
 } from "lucide-react";
 
-import {
-  toast,
-} from "sonner";
+import { toast } from "sonner";
 
-import api, {
-  formatApiErrorDetail,
-} from "../lib/api";
-
-import siteConfig from "../config/site";
+import api from "../lib/api";
 
 import {
   Table,
@@ -36,50 +29,13 @@ import {
   TableRow,
 } from "../components/ui/table";
 
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "../components/ui/tabs";
-
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../components/ui/select";
-
-/* ---------- Status Colors ---------- */
-
-const STATUS_COLORS = {
-  pending:
-    "bg-amber-50 text-amber-700 border-amber-200",
-
-  confirmed:
-    "bg-emerald-50 text-emerald-700 border-emerald-200",
-
-  cancelled:
-    "bg-rose-50 text-rose-700 border-rose-200",
-
-  completed:
-    "bg-brand-50 text-brand-900 border-brand-200",
-};
-
-/* ---------- Component ---------- */
-
 export default function AdminDashboardPage() {
 
   const navigate =
     useNavigate();
 
-  const [stats, setStats] =
-    useState({
-      appointments: 0,
-      pending: 0,
-      contacts: 0,
-    });
+  const [loading, setLoading] =
+    useState(true);
 
   const [appointments, setAppointments] =
     useState([]);
@@ -87,93 +43,11 @@ export default function AdminDashboardPage() {
   const [contacts, setContacts] =
     useState([]);
 
-  const [loading, setLoading] =
-    useState(true);
-
-  /* ---------- Fetch ---------- */
-
-  const fetchAll =
-    async () => {
-
-      setLoading(true);
-
-      try {
-
-        const [
-          statsRes,
-          appointmentsRes,
-          contactsRes,
-        ] = await Promise.all([
-          api.get("/admin/stats"),
-          api.get("/admin/appointments"),
-          api.get("/admin/contacts"),
-        ]);
-
-        setStats(
-          statsRes.data
-        );
-
-        setAppointments(
-          appointmentsRes.data
-        );
-
-        setContacts(
-          contactsRes.data
-        );
-
-      } catch (error) {
-
-        if (
-          error?.response
-            ?.status === 401
-        ) {
-
-          localStorage.removeItem(
-            "admin_token"
-          );
-
-          navigate(
-            "/admin/login"
-          );
-
-          return;
-        }
-
-        toast.error(
-          formatApiErrorDetail(
-            error?.response?.data
-              ?.detail
-          ) ||
-            "Failed to load dashboard."
-        );
-
-      } finally {
-
-        setLoading(false);
-      }
-    };
-
-  /* ---------- Init ---------- */
-
-  useEffect(() => {
-
-    const token =
-      localStorage.getItem(
-        "admin_token"
-      );
-
-    if (!token) {
-
-      navigate(
-        "/admin/login"
-      );
-
-      return;
-    }
-
-    fetchAll();
-
-  }, []);
+  const [stats, setStats] =
+    useState({
+      appointments: 0,
+      contacts: 0,
+    });
 
   /* ---------- Logout ---------- */
 
@@ -187,882 +61,358 @@ export default function AdminDashboardPage() {
       "admin_user"
     );
 
-    navigate(
-      "/admin/login"
-    );
+    navigate("/admin/login");
   };
 
-  /* ---------- Update Status ---------- */
+  /* ---------- Fetch Data ---------- */
 
-  const updateStatus =
-    async (
-      id,
-      status
-    ) => {
+  const fetchAll =
+    useCallback(async () => {
 
       try {
 
-        await api.patch(
-          `/admin/appointments/${id}?status=${status}`
-        );
+        setLoading(true);
+
+        const [
+          appointmentsRes,
+          contactsRes,
+        ] = await Promise.all([
+          api.get(
+            "/admin/appointments"
+          ),
+
+          api.get(
+            "/admin/contacts"
+          ),
+        ]);
+
+        const appointmentsData =
+          appointmentsRes.data || [];
+
+        const contactsData =
+          contactsRes.data || [];
 
         setAppointments(
-          (prev) =>
-            prev.map((item) =>
-              item.id === id
-                ? {
-                    ...item,
-                    status,
-                  }
-                : item
-            )
+          appointmentsData
         );
 
-        toast.success(
-          `Marked as ${status}`
+        setContacts(
+          contactsData
         );
 
-        const statsRes =
-          await api.get(
-            "/admin/stats"
-          );
+        setStats({
+          appointments:
+            appointmentsData.length,
 
-        setStats(
-          statsRes.data
-        );
+          contacts:
+            contactsData.length,
+        });
 
-      } catch (error) {
+      } catch (err) {
+
+        console.error(err);
 
         toast.error(
-          "Could not update status."
+          "Failed to load dashboard."
         );
-      }
-    };
 
-  /* ---------- Render ---------- */
+        if (
+          err?.response?.status === 401
+        ) {
+          logout();
+        }
+
+      } finally {
+
+        setLoading(false);
+      }
+    }, [navigate]);
+
+  /* ---------- Initial Load ---------- */
+
+  useEffect(() => {
+
+    fetchAll();
+
+  }, [fetchAll]);
+
+  /* ---------- Loading ---------- */
+
+  if (loading) {
+
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-ink-50">
+
+        <div className="flex items-center gap-3 text-ink-700">
+
+          <Loader2
+            className="animate-spin"
+            size={22}
+          />
+
+          Loading Dashboard...
+        </div>
+      </div>
+    );
+  }
+
+  /* ---------- UI ---------- */
 
   return (
-    <div
-      className="
-        min-h-screen
-        bg-ink-50
-      "
-    >
+    <div className="min-h-screen bg-ink-50">
 
       {/* ---------- Header ---------- */}
 
-      <header
-        className="
-          bg-white
-          border-b
-          border-ink-100
-          sticky
-          top-0
-          z-30
-        "
-      >
+      <header className="bg-white border-b border-ink-100">
 
-        <div
-          className="
-            container-x
-            py-4
-            flex
-            items-center
-            justify-between
-          "
-        >
+        <div className="container-x py-5 flex items-center justify-between">
 
-          {/* ---------- Logo ---------- */}
+          <div>
 
-          <Link
-            to="/"
-            className="
-              flex
-              items-center
-              gap-2.5
-            "
-          >
+            <h1 className="font-serif text-4xl text-ink-900">
+              Admin Dashboard
+            </h1>
 
-            <span
-              className="
-                h-9
-                w-9
-                rounded-full
-                bg-brand-900
-                text-white
-                font-serif
-                text-lg
-                flex
-                items-center
-                justify-center
-              "
-            >
-              {
-                siteConfig.brand
-                  .logoMark
-              }
-            </span>
-
-            <div>
-
-              <div
-                className="
-                  font-serif
-                  text-lg
-                  text-ink-900
-                  leading-none
-                "
-              >
-                {
-                  siteConfig.brand
-                    .name
-                }
-              </div>
-
-              <div
-                className="
-                  text-[10px]
-                  uppercase
-                  tracking-[0.2em]
-                  text-ink-500
-                "
-              >
-                Admin Console
-              </div>
-            </div>
-          </Link>
-
-          {/* ---------- Actions ---------- */}
-
-          <div
-            className="
-              flex
-              items-center
-              gap-2
-            "
-          >
-
-            <button
-              onClick={fetchAll}
-              className="
-                hidden
-                sm:inline-flex
-                items-center
-                gap-1.5
-                text-sm
-                text-ink-700
-                hover:text-ink-900
-                px-3
-                py-2
-                rounded-full
-                hover:bg-ink-100
-                transition
-              "
-            >
-
-              <RefreshCw
-                size={14}
-                className={
-                  loading
-                    ? "animate-spin"
-                    : ""
-                }
-              />
-
-              Refresh
-            </button>
-
-            <button
-              onClick={logout}
-              className="
-                inline-flex
-                items-center
-                gap-1.5
-                text-sm
-                text-rose-600
-                hover:bg-rose-50
-                px-3
-                py-2
-                rounded-full
-                transition
-              "
-            >
-
-              <LogOut size={14} />
-
-              Logout
-            </button>
+            <p className="text-sm text-ink-500 mt-1">
+              Manage appointments and patient inquiries
+            </p>
           </div>
+
+          <button
+            onClick={logout}
+            className="btn-primary"
+          >
+            <LogOut size={16} />
+            Logout
+          </button>
         </div>
       </header>
 
-      {/* ---------- Main ---------- */}
+      {/* ---------- Content ---------- */}
 
-      <main
-        className="
-          container-x
-          py-10
-        "
-      >
+      <main className="container-x py-10 space-y-10">
 
         {/* ---------- Stats ---------- */}
 
-        <div
-          className="
-            grid
-            grid-cols-1
-            sm:grid-cols-3
-            gap-4
-            mb-8
-          "
-        >
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-          <StatCard
-            label="Total Appointments"
-            value={stats.appointments}
-            icon={
-              <Calendar size={18} />
-            }
-          />
+          <div className="bg-white rounded-3xl p-7 shadow-soft border border-ink-100">
 
-          <StatCard
-            label="Pending"
-            value={stats.pending}
-            icon={
-              <Calendar size={18} />
-            }
-            accent
-          />
+            <div className="flex items-center justify-between">
 
-          <StatCard
-            label="Contact Messages"
-            value={stats.contacts}
-            icon={
-              <MessageSquare
-                size={18}
-              />
-            }
-          />
+              <div>
+
+                <div className="text-sm text-ink-500">
+                  Appointments
+                </div>
+
+                <div className="text-4xl font-serif text-ink-900 mt-2">
+                  {stats.appointments}
+                </div>
+              </div>
+
+              <div className="h-14 w-14 rounded-2xl bg-brand-50 text-brand-900 flex items-center justify-center">
+
+                <CalendarDays size={28} />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-3xl p-7 shadow-soft border border-ink-100">
+
+            <div className="flex items-center justify-between">
+
+              <div>
+
+                <div className="text-sm text-ink-500">
+                  Messages
+                </div>
+
+                <div className="text-4xl font-serif text-ink-900 mt-2">
+                  {stats.contacts}
+                </div>
+              </div>
+
+              <div className="h-14 w-14 rounded-2xl bg-brand-50 text-brand-900 flex items-center justify-center">
+
+                <MessageSquare size={28} />
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* ---------- Tabs ---------- */}
+        {/* ---------- Appointments ---------- */}
 
-        <Tabs defaultValue="appointments">
+        <section className="bg-white rounded-3xl p-7 shadow-soft border border-ink-100 overflow-x-auto">
 
-          <TabsList
-            className="
-              bg-white
-              border
-              border-ink-100
-              rounded-full
-              p-1
-              h-auto
-            "
-          >
+          <div className="flex items-center gap-2 mb-6">
 
-            <TabsTrigger
-              value="appointments"
-              className="
-                rounded-full
-                px-5
-                py-2
-                text-sm
-                data-[state=active]:bg-brand-900
-                data-[state=active]:text-white
-              "
-            >
-              Appointments (
-              {
-                appointments.length
-              }
-              )
-            </TabsTrigger>
+            <Users size={20} />
 
-            <TabsTrigger
-              value="messages"
-              className="
-                rounded-full
-                px-5
-                py-2
-                text-sm
-                data-[state=active]:bg-brand-900
-                data-[state=active]:text-white
-              "
-            >
-              Messages (
-              {
-                contacts.length
-              }
-              )
-            </TabsTrigger>
-          </TabsList>
+            <h2 className="font-serif text-3xl text-ink-900">
+              Appointments
+            </h2>
+          </div>
 
-          {/* ---------- Appointments ---------- */}
+          <Table>
 
-          <TabsContent
-            value="appointments"
-            className="mt-6"
-          >
+            <TableHeader>
 
-            <div
-              className="
-                bg-white
-                border
-                border-ink-100
-                rounded-3xl
-                overflow-hidden
-              "
-            >
+              <TableRow>
 
-              {loading ? (
+                <TableHead>
+                  Name
+                </TableHead>
 
-                <Loader />
+                <TableHead>
+                  Email
+                </TableHead>
 
-              ) : appointments.length ===
-                0 ? (
+                <TableHead>
+                  Phone
+                </TableHead>
 
-                <Empty
-                  title="No appointments yet"
-                  subtitle="Appointments submitted from the website appear here."
-                />
+                <TableHead>
+                  Date
+                </TableHead>
+
+                <TableHead>
+                  Message
+                </TableHead>
+
+              </TableRow>
+            </TableHeader>
+
+            <TableBody>
+
+              {appointments.length > 0 ? (
+
+                appointments.map(
+                  (item, index) => (
+
+                    <TableRow
+                      key={index}
+                    >
+
+                      <TableCell>
+                        {item.name}
+                      </TableCell>
+
+                      <TableCell>
+                        {item.email}
+                      </TableCell>
+
+                      <TableCell>
+                        {item.phone}
+                      </TableCell>
+
+                      <TableCell>
+                        {item.date}
+                      </TableCell>
+
+                      <TableCell>
+                        {item.message}
+                      </TableCell>
+
+                    </TableRow>
+                  )
+                )
 
               ) : (
 
-                <div className="overflow-x-auto">
+                <TableRow>
 
-                  <Table>
+                  <TableCell
+                    colSpan={5}
+                    className="text-center text-ink-500 py-8"
+                  >
+                    No appointments found.
+                  </TableCell>
 
-                    <TableHeader>
-
-                      <TableRow
-                        className="
-                          bg-ink-50/50
-                        "
-                      >
-
-                        <TableHead>
-                          Name
-                        </TableHead>
-
-                        <TableHead>
-                          Contact
-                        </TableHead>
-
-                        <TableHead>
-                          Service
-                        </TableHead>
-
-                        <TableHead>
-                          Date / Time
-                        </TableHead>
-
-                        <TableHead>
-                          Status
-                        </TableHead>
-
-                        <TableHead>
-                          Received
-                        </TableHead>
-                      </TableRow>
-                    </TableHeader>
-
-                    <TableBody>
-
-                      {appointments.map(
-                        (
-                          appointment
-                        ) => (
-                          <TableRow
-                            key={
-                              appointment.id
-                            }
-                          >
-
-                            {/* ---------- Name ---------- */}
-
-                            <TableCell>
-
-                              <div
-                                className="
-                                  font-semibold
-                                  text-ink-900
-                                "
-                              >
-                                {
-                                  appointment.name
-                                }
-                              </div>
-
-                              {appointment.message && (
-                                <div
-                                  className="
-                                    text-xs
-                                    text-ink-500
-                                    mt-1
-                                    max-w-xs
-                                    line-clamp-2
-                                  "
-                                >
-                                  {
-                                    appointment.message
-                                  }
-                                </div>
-                              )}
-                            </TableCell>
-
-                            {/* ---------- Contact ---------- */}
-
-                            <TableCell>
-
-                              <div
-                                className="
-                                  text-sm
-                                "
-                              >
-                                {
-                                  appointment.phone
-                                }
-                              </div>
-
-                              <a
-                                href={`mailto:${appointment.email}`}
-                                className="
-                                  text-xs
-                                  text-brand-700
-                                  hover:underline
-                                  inline-flex
-                                  items-center
-                                  gap-1
-                                "
-                              >
-                                {
-                                  appointment.email
-                                }
-
-                                <ExternalLink
-                                  size={11}
-                                />
-                              </a>
-                            </TableCell>
-
-                            {/* ---------- Service ---------- */}
-
-                            <TableCell>
-                              {
-                                appointment.service ||
-                                "—"
-                              }
-                            </TableCell>
-
-                            {/* ---------- Time ---------- */}
-
-                            <TableCell>
-
-                              <div
-                                className="
-                                  text-sm
-                                  font-medium
-                                "
-                              >
-                                {
-                                  appointment.date
-                                }
-                              </div>
-
-                              <div
-                                className="
-                                  text-xs
-                                  text-ink-500
-                                "
-                              >
-                                {
-                                  appointment.time
-                                }
-                              </div>
-                            </TableCell>
-
-                            {/* ---------- Status ---------- */}
-
-                            <TableCell>
-
-                              <Select
-                                value={
-                                  appointment.status
-                                }
-                                onValueChange={(
-                                  value
-                                ) =>
-                                  updateStatus(
-                                    appointment.id,
-                                    value
-                                  )
-                                }
-                              >
-
-                                <SelectTrigger
-                                  className={`
-                                    h-8
-                                    text-xs
-                                    px-3
-                                    rounded-full
-                                    border
-                                    ${
-                                      STATUS_COLORS[
-                                        appointment
-                                          .status
-                                      ] ||
-                                      "border-ink-200"
-                                    }
-                                  `}
-                                >
-
-                                  <SelectValue />
-                                </SelectTrigger>
-
-                                <SelectContent>
-
-                                  <SelectItem value="pending">
-                                    Pending
-                                  </SelectItem>
-
-                                  <SelectItem value="confirmed">
-                                    Confirmed
-                                  </SelectItem>
-
-                                  <SelectItem value="completed">
-                                    Completed
-                                  </SelectItem>
-
-                                  <SelectItem value="cancelled">
-                                    Cancelled
-                                  </SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </TableCell>
-
-                            {/* ---------- Date ---------- */}
-
-                            <TableCell>
-
-                              <span
-                                className="
-                                  text-xs
-                                  text-ink-500
-                                "
-                              >
-                                {formatDate(
-                                  appointment.created_at
-                                )}
-                              </span>
-                            </TableCell>
-                          </TableRow>
-                        )
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
+                </TableRow>
               )}
-            </div>
-          </TabsContent>
+            </TableBody>
+          </Table>
+        </section>
 
-          {/* ---------- Messages ---------- */}
+        {/* ---------- Contacts ---------- */}
 
-          <TabsContent
-            value="messages"
-            className="mt-6"
-          >
+        <section className="bg-white rounded-3xl p-7 shadow-soft border border-ink-100 overflow-x-auto">
 
-            <div
-              className="
-                bg-white
-                border
-                border-ink-100
-                rounded-3xl
-                overflow-hidden
-              "
-            >
+          <div className="flex items-center gap-2 mb-6">
 
-              {loading ? (
+            <MessageSquare size={20} />
 
-                <Loader />
+            <h2 className="font-serif text-3xl text-ink-900">
+              Contact Messages
+            </h2>
+          </div>
 
-              ) : contacts.length ===
-                0 ? (
+          <Table>
 
-                <Empty
-                  title="No messages yet"
-                  subtitle="Contact form submissions appear here."
-                />
+            <TableHeader>
+
+              <TableRow>
+
+                <TableHead>
+                  Name
+                </TableHead>
+
+                <TableHead>
+                  Email
+                </TableHead>
+
+                <TableHead>
+                  Message
+                </TableHead>
+
+              </TableRow>
+            </TableHeader>
+
+            <TableBody>
+
+              {contacts.length > 0 ? (
+
+                contacts.map(
+                  (item, index) => (
+
+                    <TableRow
+                      key={index}
+                    >
+
+                      <TableCell>
+                        {item.name}
+                      </TableCell>
+
+                      <TableCell>
+                        {item.email}
+                      </TableCell>
+
+                      <TableCell>
+                        {item.message}
+                      </TableCell>
+
+                    </TableRow>
+                  )
+                )
 
               ) : (
 
-                <div
-                  className="
-                    divide-y
-                    divide-ink-100
-                  "
-                >
+                <TableRow>
 
-                  {contacts.map(
-                    (
-                      message
-                    ) => (
-                      <div
-                        key={
-                          message.id
-                        }
-                        className="
-                          p-6
-                        "
-                      >
+                  <TableCell
+                    colSpan={3}
+                    className="text-center text-ink-500 py-8"
+                  >
+                    No messages found.
+                  </TableCell>
 
-                        <div
-                          className="
-                            flex
-                            items-start
-                            justify-between
-                            gap-4
-                          "
-                        >
-
-                          <div>
-
-                            <div
-                              className="
-                                font-semibold
-                                text-ink-900
-                              "
-                            >
-                              {
-                                message.name
-                              }
-                            </div>
-
-                            <div
-                              className="
-                                text-xs
-                                text-ink-500
-                                mt-0.5
-                              "
-                            >
-                              {
-                                message.email
-                              }
-
-                              {message.phone
-                                ? ` · ${message.phone}`
-                                : ""}
-                            </div>
-                          </div>
-
-                          <div
-                            className="
-                              text-xs
-                              text-ink-500
-                              shrink-0
-                            "
-                          >
-                            {formatDate(
-                              message.created_at
-                            )}
-                          </div>
-                        </div>
-
-                        <p
-                          className="
-                            mt-3
-                            text-sm
-                            text-ink-700
-                            leading-relaxed
-                          "
-                        >
-                          {
-                            message.message
-                          }
-                        </p>
-                      </div>
-                    )
-                  )}
-                </div>
+                </TableRow>
               )}
-            </div>
-          </TabsContent>
-        </Tabs>
+            </TableBody>
+          </Table>
+        </section>
       </main>
     </div>
   );
-}
-
-/* ---------- Stat Card ---------- */
-
-function StatCard({
-  label,
-  value,
-  icon,
-  accent,
-}) {
-
-  return (
-    <div
-      className={`
-        rounded-3xl
-        p-6
-        border
-        ${
-          accent
-            ? "bg-brand-900 text-white border-brand-900"
-            : "bg-white border-ink-100"
-        }
-      `}
-    >
-
-      <div
-        className="
-          flex
-          items-center
-          justify-between
-        "
-      >
-
-        <div
-          className={`
-            text-xs
-            uppercase
-            tracking-[0.18em]
-            font-semibold
-            ${
-              accent
-                ? "text-brand-200"
-                : "text-ink-500"
-            }
-          `}
-        >
-          {label}
-        </div>
-
-        <div
-          className={`
-            h-9
-            w-9
-            rounded-full
-            flex
-            items-center
-            justify-center
-            ${
-              accent
-                ? "bg-white/10 text-white"
-                : "bg-brand-50 text-brand-900"
-            }
-          `}
-        >
-          {icon}
-        </div>
-      </div>
-
-      <div
-        className={`
-          mt-4
-          font-serif
-          text-4xl
-          ${
-            accent
-              ? "text-white"
-              : "text-ink-900"
-          }
-        `}
-      >
-        {value}
-      </div>
-    </div>
-  );
-}
-
-/* ---------- Empty ---------- */
-
-function Empty({
-  title,
-  subtitle,
-}) {
-
-  return (
-    <div
-      className="
-        text-center
-        py-20
-        px-6
-      "
-    >
-
-      <div
-        className="
-          font-serif
-          text-2xl
-          text-ink-900
-        "
-      >
-        {title}
-      </div>
-
-      <div
-        className="
-          text-sm
-          text-ink-500
-          mt-1
-        "
-      >
-        {subtitle}
-      </div>
-    </div>
-  );
-}
-
-/* ---------- Loader ---------- */
-
-function Loader() {
-
-  return (
-    <div
-      className="
-        flex
-        items-center
-        justify-center
-        py-16
-        text-ink-500
-      "
-    >
-
-      <Loader2
-        className="
-          animate-spin
-        "
-      />
-    </div>
-  );
-}
-
-/* ---------- Format Date ---------- */
-
-function formatDate(
-  iso
-) {
-
-  try {
-
-    const date =
-      new Date(iso);
-
-    return date.toLocaleString(
-      undefined,
-      {
-        dateStyle:
-          "medium",
-        timeStyle:
-          "short",
-      }
-    );
-
-  } catch {
-
-    return iso;
-  }
 }
