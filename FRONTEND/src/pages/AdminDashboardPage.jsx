@@ -51,19 +51,19 @@ export default function AdminDashboardPage() {
 
   /* ---------- Logout ---------- */
 
-  const logout = () => {
+ const logout = useCallback(() => {
 
-    localStorage.removeItem(
-      "admin_token"
-    );
+  localStorage.removeItem(
+    "admin_token"
+  );
 
-    localStorage.removeItem(
-      "admin_user"
-    );
+  localStorage.removeItem(
+    "admin_user"
+  );
 
-    navigate("/admin/login");
-  };
+  navigate("/admin/login");
 
+}, [navigate]);
   /* ---------- Fetch Data ---------- */
 
   const fetchAll =
